@@ -25,6 +25,11 @@ end
 
 rc_time = RCIN.data(t_start:t_end,1)';
 
+%% Tiempo para las salidas PWM
+t_pwm_out = RCOU.data(:,1);
+tinds = t_pwm_out >= RCIN.data(t_start,1) & t_pwm_out <= RCIN.data(t_end);
+pwm_out_time = t_pwm_out(tinds)';
+
 %% Ajustar el tiempo para la IMU
 t_imu = IMU.data(:,1);
 tinds = t_imu >= RCIN.data(t_start,1) & t_imu <= RCIN.data(t_end,1);
@@ -98,6 +103,7 @@ imu_time = imu_time - rc_time(1);
 xy_pos_time = xy_pos_time - rc_time(1);
 z_pos_time = z_pos_time - rc_time(1);
 att_time = att_time - rc_time(1);
+pwm_out_time = pwm_out_time - rc_time(1);
 
 %% Differentiate
 % Eje X
@@ -160,6 +166,76 @@ r = double(-pv.*sin(rp)) + double(yv.*cos(rp).*cos(pp));
 % Caluclar aceleración de yaw
 ch4_d = meanFilter(diff(ch4)',10)./ts_RC;
 ch4_d = [0;ch4_d];
+
+%% Estimación de los parámetros Motor
+ Erle_KT = 8.5485e-6;
+ Erle_Kd = 8.06428e-5;
+ Erle_l = 0.141; %(m)
+ 
+ % Cálculo de las velocidades utilizando las entradas a los ESC
+ RCPer = median(diff(pwm_out_time));
+ 
+ for k = 1:size(pwm_out_time,2)
+     if k == 1
+         w0(1,k) = 0;
+         w1(1,k) = 0;
+         w2(1,k) = 0;
+         w3(1,k) = 0;
+     end
+     if k > 1
+         w0(1,k) = 2.139e-5*w0(1,k-1) + 1*m0_raw(1,k-1)-1200;
+         w1(1,k) = 2.139e-5*w0(1,k-1) + 1*m1_raw(1,k-1)-1200;
+         w2(1,k) = 2.139e-5*w0(1,k-1) + 1*m2_raw(1,k-1)-1200;
+         w3(1,k) = 2.139e-5*w0(1,k-1) + 1*m3_raw(1,k-1)-1200;
+     end
+ end
+ 
+ w0 = w0 + 298.7;
+ w1 = w1 + 298.7;
+ w2 = w2 + 298.7;
+ w3 = w3 + 298.7;
+%  
+%  w0 = w0(tinds);
+%  w1 = w1(tinds);
+%  w2 = w2(tinds);
+%  w3 = w3(tinds);
+ 
+ % Cálculo de las actuaciones
+ U1 = Erle_KT*(w0.^2+w1.^2+w2.^2+w3.^2);
+ %U2 = (sqrt(2)/2)*Erle_KT*Erle_l*(-w0.^2 + w1.^2 + w2.^2 - w3.^2);
+ U2 = Erle_KT*Erle_l*(w3.^2-w1.^2);
+ U3 = (sqrt(2)/2)*Erle_KT*Erle_l*(-w0.^2 + w1.^2 - w2.^2 - w3.^2);
+ U4 = Erle_Kd*(-w0.^2 - w1.^2 + w2.^2 + w3.^2);
+ 
+ U2 = meanFilter(U2',2)';
+ U3 = meanFilter(U3',2)';
+ 
+ % Comparar valores
+ temp = meanFilter(gyro_r',2);
+ plotyy(att_time,pa,pwm_out_time,-U3);
+ legend('X pos','U3','pitch','RC');
+ 
+ figure();
+ plotyy(att_time,ra,pwm_out_time,U2);
+ legend('Y pos','U2','roll','RC');
+ 
+ figure();
+ plotyy(att_time,ya,pwm_out_time,-U4);
+ legend('Z pos','U4','yaw','RC');
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
 
 
 
