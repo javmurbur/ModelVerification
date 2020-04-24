@@ -2,6 +2,8 @@ clear all
 close all
 clc
 
+% Prueba de subida %
+
 m_100;
 
 t_start = 1;
