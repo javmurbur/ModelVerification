@@ -17,7 +17,7 @@ erle.Jr = 2.409e-4;
 
 %% Parámetros físicos
 erle.Kd = 8.06428e-5;
-erle.Kdx = 0;
+erle.Kdx = 0.5;
 erle.Kdy = 0;
 erle.Kdz = 0;
 erle.l = 0.141; % (m)

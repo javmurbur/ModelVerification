@@ -4,6 +4,7 @@ clc
 
 m_100;
 
+addpath  C:\Users\javi\Desktop\Repositorios\ModelVerification\ErleCopterModel\rls\matlab
 %% Find Start and End Times based on Thrust
 ch3 = (double(CTUN.data(:,5)'));
 t_start = 1;
@@ -56,16 +57,16 @@ rpy_max = 45; % Ángulo máximo en grados
 % Valores de entrada transformados
 ch1 = -(double(RCIN.data(t_start:t_end,3)')-1450)*(rpy_max/400)*(2*pi/360); %Roll en rad
 ch2 = -(double(RCIN.data(t_start:t_end,4)')-1500)*(rpy_max/400)*(2*pi/360); %Pitch en rad
-ch3 = (double(CTUN.data(t_start:t_end,5)')- 475)/100; %Thrust 
+ch3 = (double(CTUN.data(t_start:t_end,5)')- 475); %Thrust 
 ch4 = -(double(RCIN.data(t_start:t_end,6)')-1525)*(rpy_max/400)*(2*pi/360); %Yaw rate en rad/s
 
 %% Salidas RC (PWM)
 
 % ESC PWM (1000-2000 us)
 m0_raw = RCOU.data(t_start:t_end,3)'; % FR
-m1_raw = RCOU.data(t_start:t_end,1)'; % BL
-m2_raw = RCOU.data(t_start:t_end,2)'; % FL
-m3_raw = RCOU.data(t_start:t_end,3)'; % BR
+m1_raw = RCOU.data(t_start:t_end,4)'; % BL
+m2_raw = RCOU.data(t_start:t_end,5)'; % FL
+m3_raw = RCOU.data(t_start:t_end,6)'; % BR
 
 %% Posición (m)
 % Time (s)
@@ -80,7 +81,7 @@ t_BARO = BARO.data(:,1);
 tinds = t_BARO >= t_pwm_in(t_start) & t_BARO <= t_pwm_in(t_end);
 z_pos_time = t_BARO(tinds)';
 
-Zg = -BARO.data(tinds,3)'/100;
+Zg = -BARO.data(tinds,3)';
 
 %% Ángulos de inclinacioón (rad)
 t_ATT = ATT.data(:,1);
@@ -137,7 +138,7 @@ bxa = ba(:,1); % m/s^2
 bya = ba(:,2); % m/s^2
 
 % Rotaciones
-rp = medianFilter(roll_v',40);  % rad
+rp = medianFilter(roll_v',10);  % rad
 rv = meanFilter(diff(rp),40)./ts_ATT; %rad/s
 ra = meanFilter(diff(rv),40)./ts_ATT; %rad/s^2
 rv = [0;rv];
@@ -183,10 +184,10 @@ ch4_d = [0;ch4_d];
          w3(1,k) = 0;
      end
      if k > 1
-         w0(1,k) = 2.139e-5*w0(1,k-1) + 1*m0_raw(1,k-1)-1200;
-         w1(1,k) = 2.139e-5*w0(1,k-1) + 1*m1_raw(1,k-1)-1200;
-         w2(1,k) = 2.139e-5*w0(1,k-1) + 1*m2_raw(1,k-1)-1200;
-         w3(1,k) = 2.139e-5*w0(1,k-1) + 1*m3_raw(1,k-1)-1200;
+         w0(1,k) = 2.139e-5*w0(1,k-1) + 1*m1_raw(1,k-1)-1200;
+         w1(1,k) = 2.139e-5*w1(1,k-1) + 1*m0_raw(1,k-1)-1200;
+         w2(1,k) = 2.139e-5*w2(1,k-1) + 1*m2_raw(1,k-1)-1200;
+         w3(1,k) = 2.139e-5*w3(1,k-1) + 1*m3_raw(1,k-1)-1200;
      end
  end
  
@@ -202,40 +203,153 @@ ch4_d = [0;ch4_d];
  
  % Cálculo de las actuaciones
  U1 = Erle_KT*(w0.^2+w1.^2+w2.^2+w3.^2);
- %U2 = (sqrt(2)/2)*Erle_KT*Erle_l*(-w0.^2 + w1.^2 + w2.^2 - w3.^2);
- U2 = Erle_KT*Erle_l*(w3.^2-w1.^2);
+ U2 = (sqrt(2)/2)*Erle_Kd*Erle_l*(-w0.^2 + w1.^2 + w2.^2 - w3.^2);
+%  U2 = Erle_KT*Erle_l*(w2.^2-w3.^2);
  U3 = (sqrt(2)/2)*Erle_KT*Erle_l*(-w0.^2 + w1.^2 - w2.^2 - w3.^2);
  U4 = Erle_Kd*(-w0.^2 - w1.^2 + w2.^2 + w3.^2);
  
  U2 = meanFilter(U2',2)';
  U3 = meanFilter(U3',2)';
  
- % Comparar valores
- temp = meanFilter(gyro_r',2);
- plotyy(att_time,pa,pwm_out_time,-U3);
- legend('X pos','U3','pitch','RC');
- 
- figure();
- plotyy(att_time,ra,pwm_out_time,U2);
- legend('Y pos','U2','roll','RC');
- 
- figure();
- plotyy(att_time,ya,pwm_out_time,-U4);
- legend('Z pos','U4','yaw','RC');
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
+%  % Comparar valores -> ESTA COMPARACIÓN NO TIENE SENTIDO
+%  temp = meanFilter(gyro_r',2);
+%  plotyy(att_time,rp,pwm_out_time,U2');
+%  legend('Y pos','U2','roll','RC');
+%  
+% 
+%  figure();
+%  plotyy(att_time,pa,pwm_out_time,-U3);
+%  legend('X pos','U3','pitch','RC');
+%  
+%  figure();
+%  plotyy(att_time,ya,pwm_out_time,-U4);
+%  legend('Z pos','U4','yaw','RC');
+%  
 
+%% Alineación temporal entre ATT y RCIN
+offsets = linspace(-.5,.5,50);
+
+RMSp = zeros(size(offsets));
+RMSr = zeros(size(offsets));
+RMSz = zeros(size(offsets));
+RMSy = zeros(size(offsets));
+
+i = 0;
+for o = offsets
+    i = i + 1;
+    vinds = findLatestsInds(rc_time,att_time + o);
+    
+    ccf = corrcoef(double([pp(vinds),ch2']));
+    RMSp(i) = ccf(1,2);
+    
+    ccf = corrcoef(double([rp(vinds),ch1']));
+    RMSr(i) = ccf(1,2);
+    
+    ccf = corrcoef(double([-gza(vinds),ch3']));
+    RMSz(i) = ccf(1,2);
+    
+    ccf = corrcoef(double([yv(vinds),ch4']));
+    RMSy(i) = ccf(1,2);
+    
+end
+ 
+ disp(' ');
+ [v,oi] = max(RMSp);
+ vindsp = findLatestsInds(rc_time,att_time + offsets(oi));
+ disp(['Ardupilot/RC pitch angle delay = ' num2str(offsets(oi)) 'sec']);
+ 
+  [v,oi] = max(RMSr);
+ vindsr = findLatestsInds(rc_time,att_time + offsets(oi));
+ disp(['Ardupilot/RC roll angle delay = ' num2str(offsets(oi)) 'sec']);
+ 
+  [v,oi] = max(RMSz);
+ vindsz = findLatestsInds(rc_time,att_time + offsets(oi));
+ disp(['Ardupilot/RC thrust delay = ' num2str(offsets(oi)) 'sec']);
+ 
+  [v,oi] = max(RMSy);
+ vindsy = findLatestsInds(rc_time,att_time + offsets(oi));
+ disp(['Ardupilot/RC yaw rate delay = ' num2str(offsets(oi)) 'sec']);
+ disp(' ');
+ 
+ %% Alineación temporal entre ATT y ACTUACIONES
+offsets = linspace(-.5,.5,50);
+
+RMSp = zeros(size(offsets));
+RMSr = zeros(size(offsets));
+RMSz = zeros(size(offsets));
+RMSy = zeros(size(offsets));
+
+i = 0;
+for o = offsets
+    i = i + 1;
+    vinds = findLatestsInds(pwm_out_time,att_time + o);
+    
+    ccf = corrcoef(double([-pa(vinds),U3']));
+    RMSp(i) = ccf(1,2);
+    
+    ccf = corrcoef(double([ra(vinds),U2']));
+    RMSr(i) = ccf(1,2);
+    
+    ccf = corrcoef(double([-gza(vinds),U1']));
+    RMSz(i) = ccf(1,2);
+    
+    ccf = corrcoef(double([-ya(vinds),U4']));
+    RMSy(i) = ccf(1,2);
+    
+end
+ 
+ disp(' ');
+ [v,oi] = max(RMSp);
+ vindsU3 = findLatestsInds(pwm_out_time,att_time + offsets(oi));
+ disp(['Ardupilot/ESC pitch acc delay = ' num2str(offsets(oi)) 'sec']);
+ 
+  [v,oi] = max(RMSr);
+ vindsU2 = findLatestsInds(pwm_out_time,att_time + offsets(oi));
+ disp(['Ardupilot/ESC roll acc delay = ' num2str(offsets(oi)) 'sec']);
+ 
+  [v,oi] = max(RMSz);
+ vindsU1 = findLatestsInds(pwm_out_time,att_time + offsets(oi));
+ disp(['Ardupilot/ESC z acc delay = ' num2str(offsets(oi)) 'sec']);
+ 
+  [v,oi] = max(RMSy);
+ vindsU4 = findLatestsInds(pwm_out_time,att_time + offsets(oi));
+ disp(['Ardupilot/ESC yaw acc delay = ' num2str(offsets(oi)) 'sec']);
+ disp(' ');
+ 
+ %% Dinámica Translacional
+ % Complejo
+ global erle;
+ erle_variables;
+ 
+ Rx = (1/erle.m)*U1'.*(cos(rp(vindsU2)).*cos(yp(vindsU4)).*sin(pp(vindsU3)) + sin(rp(vindsU2)).*sin(yp(vindsU4)));
+ Ax = [-Rx, -(1/erle.m)*0*gxv(vindsU3), ones(size(Rx,1),1)];
+ Bx = gxa(vindsU3);
+ [kxn,loosxn,bestlambdansxn] = lrlsloobest(Ax,Bx);
+ 
+ Rz = (1/erle.m)*U1'.*(cos(rp(vindsU2)).*cos(pp(vindsU3)));
+ Az = [-Rz, -(1/erle.m)*erle.Kdz*gzv(vindsU1), erle.g*ones(size(Rz,1),1)];
+ Bz = gza(vindsU1);
+ [kzn,looszn,bestlambdaszn] = lrlsloobest(Az, Bz);
+ 
+ figure();
+ 
+plot(pwm_out_time,[gxa(vindsU3),Ax*kxn])
+legend('Measured','Model');
+
+ figure();
+ 
+plot(pwm_out_time,[gza(vindsU3),Az*kxn])
+legend('Measured','Model');
+ 
+% % Simple
+% 
+%  Ax=[-(1/erle.m)*pp(vindsp).*U1',ones(size(U1,2),1)];
+%  Bx = bxa(vindsp);
+%  [kx,loosx,bestlambdasx] = lrlsloobest(Ax, Bx);
+% 
+%  figure();
+%  plot(rc_time,[bxa(vindsp),Ax*kx])
+%  legend('Measured','Model');
 
 
 
