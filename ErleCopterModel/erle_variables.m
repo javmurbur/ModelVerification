@@ -10,14 +10,14 @@ erle.T_escalon_yaw = 0;%(segundios)
 erle.Tm = 0.01;
 
 %% Parámetros del motor
-erle.Kt = 8.5486e-6;
+erle.Kt = 1.5486e-5;
 erle.w_max = 838; % (rad/s)
 erle.w_min = 0;
 erle.Jr = 2.409e-4;
 
 %% Parámetros físicos
 erle.Kd = 8.06428e-5;
-erle.Kdx = 0.5;
+erle.Kdx = 0.15;
 erle.Kdy = 0;
 erle.Kdz = 0;
 erle.l = 0.141; % (m)
