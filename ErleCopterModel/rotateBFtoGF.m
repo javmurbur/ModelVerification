@@ -18,7 +18,7 @@ Ry = [cp 0 sp;0 1 0;-sp 0 cp];
 %Rotación en el eje zb(yaw)
 Rz = [cy -sy 0;sy cy 0;0 0 1];
 
-RGB = Rz*Ry*Rx;
+RGB = Rx*Ry*Rz;
 RBG = RGB';
 
  X = RBG(1,:)*[x;y;z];

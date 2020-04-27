@@ -37,8 +37,8 @@ tinds = t_ATT >= throttle_time(t_start) & t_ATT <= throttle_time(t_end);
 att_time = t_ATT(tinds)';
 
 roll_v = (ATT.data(tinds,4)')*(pi/180);
-pitch_v = (-ATT.data(tinds,6)')*(pi/180);
-yaw_v = (-ATT.data(tinds,8)')*(pi/180);
+pitch_v = (ATT.data(tinds,6)')*(pi/180);
+yaw_v = (ATT.data(tinds,8)')*(pi/180);
 
 %% Velocidades de los motores
 % RCOU --> 3007 x 14
@@ -146,9 +146,14 @@ for i = 1:size(U1,2)
     Yd_modelo = Ydd_modelo(1,i)*ts_RCOU + Yd_modelo;
     Zd_modelo = Zdd_modelo(1,i)*ts_RCOU + Zd_modelo;
     
-%     [Xdd_modelo_b(i),Ydd_modelo_b(i),Zdd_modelo_b(i)] = rotateGFtoBF(Xdd_modelo(i),Ydd_modelo(1),Zdd_modelo(i),roll_v(i),pitch_v(i),yaw_v(i));
-    
-    
+%     [Xdd_modelo_b(i),Ydd_modelo_b(i),Zdd_modelo_b(i)] = rotateGFtoBF(Xdd_modelo(1,i),Ydd_modelo(1,i),Zdd_modelo(1,i),roll_v(i),pitch_v(i),yaw_v(i));
+%        Xdd_modelo_b(i) = (cos(pitch_v(i))*cos(yaw_v(i))*Xdd_modelo(i)) + (cos(pitch_v(i))*sin(yaw_v(i))*Ydd_modelo(i)) - sin(pitch_v(i))*Zdd_modelo(i);
+    for j = 1:size(IMU_time,2)
+        if RCOU_time(i) == IMU_time(j)
+            [XddG_real_IMU(i),YddG_real_IMU(i),ZddG_real_IMU(i)] = rotateBFtoGF(Xdd_real_b(j),Ydd_real_b(j),Zdd_real_b(j),roll_v(i),pitch_v(i),yaw_v(i));
+%             XddB_Real(i) =  Xdd_real_b(j);
+        end
+    end
     
 end
 
@@ -157,7 +162,10 @@ end
 figure();
 plot(NTUN_time,Xdd_modelo);
 hold on;
-plot( NTUN_time, -Xdd_real);legend('Modelo','Real');
+plot( NTUN_time, Xdd_real);
+hold on;
+plot( NTUN_time, -XddG_real_IMU);
+legend('Modelo','NTUN','IMU');
 xlabel('t(s)');ylabel('Xd (m/s^2)');
 str = sprintf('Aceleración en XG (Kt = %.2f Kdx = %.2f)',erle.Kt,erle.Kdx);
 title(str);
@@ -165,11 +173,13 @@ title(str);
 figure();
 plot(NTUN_time,Ydd_modelo);
 hold on;
-plot( NTUN_time, Ydd_real);legend('Modelo','Real');
+plot( NTUN_time, Ydd_real);
+hold on;
+plot( NTUN_time, -YddG_real_IMU);
+legend('Modelo','Real','IMU');
 xlabel('t(s)');ylabel('Yd (m/s^2)');
 str = sprintf('Aceleración en YG (Kt = %.2f Kdx = %.2f)',erle.Kt,erle.Kdy);
 title(str);
-
 % 
 % figure();
 % plot(EKF1_time,Zdd_modelo);
@@ -186,5 +196,20 @@ plot( BARO_time, Zdd_real);legend('Modelo','Real');
 xlabel('t(s)');ylabel('Zd (m/s^2)');
 str = sprintf('Aceleración en ZG (Kt = %.2f Kdx = %.2f)',erle.Kt,erle.Kdz);
 title(str);
+
+% figure();
+% plot(NTUN_time,-XddG_real,NTUN_time,Xdd_modelo);legend('IMU','Modelo');title('Velocidad en XG (m/s^2)');
+% figure();
+% plot(NTUN_time,-YddG_real,NTUN_time,Ydd_modelo);legend('IMU','Modelo');title('Velocidad en YG (m/s^2)');
+% figure();
+% plot(NTUN_time,ZddG_real,NTUN_time,Zdd_modelo);legend('IMU','Modelo');title('Velocidad en ZG (m/s^2)');
+% figure();
+% plot(NTUN_time,XddB_Real,NTUN_time,Xdd_modelo_b);legend('IMU','Modelo');
+
+
+
+
+
+
 
 
