@@ -140,7 +140,7 @@ for i = 1:size(U1,2)
     
     Xdd_modelo(1,i) = (1/erle.m)*(-(cos(roll_v(i))*sin(pitch_v(i))*cos(yaw_v(i)) + sin(roll_v(i))*sin(yaw_v(i)))*U1(i) - erle.Kdx*Xd_modelo);
     Ydd_modelo(1,i) = (1/erle.m)*(-(cos(roll_v(i))*sin(pitch_v(i))*sin(yaw_v(i)) - sin(roll_v(i))*cos(yaw_v(i)))*U1(i) - erle.Kdy*Yd_modelo);
-    Zdd_modelo(1,i) = (1/erle.m)*((cos(roll_v(i))*cos(pitch_v(i)))*U1(i) - 0.3*Zd_modelo) + erle.g;
+    Zdd_modelo(1,i) = (1/erle.m)*(-(cos(roll_v(i))*cos(pitch_v(i)))*U1(i) - 0.3*Zd_modelo) + erle.g;
     
     Xd_modelo = Xdd_modelo(1,i)*ts_RCOU + Xd_modelo;
     Yd_modelo = Ydd_modelo(1,i)*ts_RCOU + Yd_modelo;
@@ -192,7 +192,7 @@ title(str);
 figure();
 plot(BARO_time,Zdd_modelo);
 hold on;
-plot( BARO_time, Zdd_real);legend('Modelo','Real');
+plot( BARO_time, ZddG_real_IMU+erle.g);legend('Modelo','Real');
 xlabel('t(s)');ylabel('Zd (m/s^2)');
 str = sprintf('Aceleración en ZG (Kt = %.2f Kdx = %.2f)',erle.Kt,erle.Kdz);
 title(str);
