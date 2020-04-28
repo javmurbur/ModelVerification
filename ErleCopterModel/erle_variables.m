@@ -13,7 +13,7 @@ erle.Tm = 0.01;
 erle.Kt = 1.5486e-5;
 erle.w_max = 838; % (rad/s)
 erle.w_min = 0;
-erle.Jr = 2.409e-4;
+erle.Jr = 2.409e-5;
 
 %% Parámetros físicos
 erle.Kd = 8.06428e-5;

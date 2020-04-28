@@ -107,8 +107,8 @@ end
 
 %% Actuaciones 
 U1 = erle.Kt*(W0.^2+W1.^2+W2.^2+W3.^2);
-U2 = erle.l * erle.Kt * (W2.^2 - W3.^2);
-U3 = erle.l * erle.Kt * (W0.^2 - W1.^2);
+U2 = (sqrt(2)/2) * erle.l * erle.Kt * (W0.^2 - W1.^2 - W2.^2 + W3.^2);
+U3 = (sqrt(2)/2) * erle.l * erle.Kt * (W0.^2 - W1.^2 + W2.^2 - W3.^2);
 U4 = erle.Kd * (W0.^2 + W1.^2 - W2.^2 - W3.^2);
 Om = W0+W1-W2-W3;
 
@@ -117,46 +117,51 @@ roll_sum = 0;
 pv_sum = 0;
 pitch_sum = 0;
 for i = 1:size(RCOU_time,2)
-    
-        ra_modelo(i) = (1/erle.Ixx) * ((erle.Iyy - erle.Izz)*pv(i)*yv(i) - erle.Jr*pv(i)*Om(i) + U2(i));
+    if( roll_v(i) < 5*(pi/180) && roll_v(i) > -5*(pi/180))
+        ra_modelo(i) = (1/erle.Ixx) * ((erle.Iyy - erle.Izz)*pv(i)*yv(i) + U2(i));
         pa_modelo(i) = (1/erle.Iyy) * ((erle.Izz - erle.Ixx)*rv(i)*yv(i) + erle.Jr*rv(i)*Om(i) + U3(i));
-        ya_modelo(i) = (1/erle.Izz) * ((erle.Ixx - erle.Iyy)*rv(i)*pv(i)  + U4(i));
+        ya_modelo(i) = (1/erle.Izz) * ((erle.Ixx - erle.Iyy)*pv(i)*rv(i)  + U4(i));
     
         rv_sum = ra_modelo(i) * ts_RCOU;
-        p_modelo(i) = rv_sum;
+        roll_sum = rv_sum * ts_RCOU;
+        rolld_modelo(i) = rv_sum;
+        roll_modelo(i) = roll_sum;
+        
+        pv_sum = pa_modelo(i) * ts_RCOU;
+        pitch_sum = pv_sum * ts_RCOU;
+        rolld_modelo(i) = rv_sum;
+        roll_modelo(i) = roll_sum;
+        
+        
+    end
 
-        
-        
+
+    
     
 end
 
-% figure();
-% plot(RCOU_time,ra,RCOU_time,ra_modelo);
-% legend('Real','Modelo');
-% title('Aceleración angular Roll');
+figure();
+plot(RCOU_time,ra,RCOU_time,ra_modelo);
+legend('Real','Modelo');
+title('Aceleración angular Roll');
 
-% figure();
-% plot(RCOU_time,pa,RCOU_time,pa_modelo);
-% legend('Real','Modelo');
-% title('Aceleración angular Pitch');
+figure();
+plot(RCOU_time,pa,RCOU_time,pa_modelo);
+legend('Real','Modelo');
+title('Aceleración angular Pitch');
 % 
 % figure();
 % plot(RCOU_time,ya,RCOU_time,ya_modelo);
 % legend('Real','Modelo');
 
-% %% Velocidades
-% figure();
-% plot(RCOU_time,rv,RCOU_time,rolld_modelo);legend('Real','Moelo');
-% title('Velocidad angular Roll');
+%% Velocidades
+figure();
+plot(RCOU_time,rv,RCOU_time,rolld_modelo);legend('Real','Moelo');
+title('Velocidad angular Roll');
 %% Ángulos
 figure();
-plot(RCOU_time,p_att,RCOU_time,-p_modelo);legend('Real','Moelo');
+plot(RCOU_time,roll_v,RCOU_time,roll_modelo);legend('Real','Moelo');
 title('Roll');
-
-% %% Ángulos
-% figure();
-% plot(RCOU_time,pitch_v,RCOU_time,pitch_modelo);legend('Real','Moelo');
-% title('Pitch');
 
 
 
